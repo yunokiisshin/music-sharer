@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Sharing dApp</title>
+    
+    <!-- Stylesheet; to be separated later -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -35,59 +38,102 @@
         #said {
             display: none;
         }
+        #add-file-section {
+            display: none;
+        }
     </style>
 </head>
+
+
 <body>
-<h1>Share Your Music</h1>
+    <h1>Share Your Music</h1>
 
-<form id="sign">
-  <input id="alias" placeholder="username">
-  <input id="pass" type="password" placeholder="passphrase">
-  <input id="in" type="submit" value="sign in">
-  <input id="up" type="button" value="sign up">
-</form>
+    <form id="sign">
+    <input id="alias" placeholder="username">
+    <input id="pass" type="password" placeholder="passphrase">
+    <input id="in" type="submit" value="sign in">
+    <input id="up" type="button" value="sign up">
+    </form>
 
-<ul></ul>
+    <ul id="file-list"></ul>
 
-<form id="said">
-    <input id="say">
-    <input id="speak" type="submit" value="speak">
-</form>
+    <div id="add-file-section" class="none">
+        <h2>Add Audio File</h2>
+        <form id="add-file">
+            <input type="file" id="file" accept="audio/*">
+            <input type="submit" value="Add File">
+        </form>
+    </div>
 
-<script src="https://cdn.jsdelivr.net/npm/gun/examples/jquery.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+    <!-- Tools to include -->
+    <script src="https://cdn.jsdelivr.net/npm/gun/examples/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
 
-<script>
-var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
-var user = gun.user();
+    <script>
+        // I use the publically available site for hosting gundb; this can be found in the official website
+        // Optionally, I could establish a new server using an application, such as heroku, render
+        var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+        var user = gun.user();
 
-$('#up').on('click', function(e){
-  user.create($('#alias').val(), $('#pass').val());
-});
+        $('#up').on('click', function(e){
+        user.create($('#alias').val(), $('#pass').val());
+        });
 
-$('#sign').on('submit', function(e){
-  e.preventDefault();
-  user.auth($('#alias').val(), $('#pass').val());
-});
+        $('#sign').on('submit', function(e){
+        e.preventDefault();
+        user.auth($('#alias').val(), $('#pass').val());
+        });
 
-$('#said').on('submit', function(e){
-  e.preventDefault();
-  if(!user.is){ return }
-  user.get('said').set($('#say').val());
-  $('#say').val("");
-});
 
-function UI(say, id){
-  var li = $('#' + id).get(0) || $('<li>').attr('id', id).appendTo('ul');
-  $(li).text(say);
-};
+        $('#said').on('submit', function(e){
+        e.preventDefault();
+        if(!user.is){ return }
+        user.get('said').set($('#say').val());
+        $('#say').val("");
+        });
 
-gun.on('auth', function(){
-  $('#sign').hide();
-  $('#said').show();
-  user.get('said').map().once(UI);
-});
-</script>
+        function UI(say, id){
+        var li = $('#' + id).get(0) || $('<li>').attr('id', id).appendTo('ul');
+        $(li).text(say);
+        };
+
+        $('#add-file').on('submit', function(e) {
+            e.preventDefault();
+            var file = $('#file')[0].files[0];
+            if (!file) return;
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var fileData = event.target.result;
+                var fileName = file.name;
+
+                user.get('files').set({
+                    name: fileName,
+                    data: fileData,
+                    type: file.type
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function displayFile(file, id) {
+            var li = $('<li>').attr('id', id);
+            var audio = $('<audio controls>').attr('src', file.data);
+            li.append(file.name);
+            li.append(audio);
+            $('#file-list').append(li);
+        }
+
+        gun.on('auth', function(){
+        $('#sign').hide();
+        $('#said').show();
+        $('#add-file-section').show();
+        user.get('said').map().once(UI);
+        user.get('files').map().once(function(file, id) {
+            displayFile(file, id);
+        });
+        });
+    </script>
 </body>
 </html>
