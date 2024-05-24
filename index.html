@@ -59,9 +59,13 @@
 
     <button id="logout" style="display: none;">Logout</button>
 
+    <!-- Dependencies for basic utilities -->
     <script src="https://cdn.jsdelivr.net/npm/gun/examples/jquery.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/lib/yson.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/lib/dom.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/lib/upload.js"></script>
 
     <script>
         var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
@@ -138,9 +142,11 @@
         }
 
         function loadExistingFiles() {
-            user.get('files').map().once(function(file, id) {
+            user.get('files').map().on(function(file, id) {
                 if (file) { // Filter out null values
                     displayFile(file, id);
+                } else {
+                    removeFile(id); // Remove the file from the UI
                 }
             });
         }
@@ -150,15 +156,7 @@
             $('#logout').show();
             $('#add-file-section').show();
             $('#file-list').empty(); // Clear the existing list to avoid duplicates
-            loadExistingFiles(); // Load existing files
-            user.get('files').map().on(function(file, id) {
-                if (file) { // Filter out null values
-                    console.log('File:', file); // Log the file object for debugging
-                    displayFile(file, id);
-                } else {
-                    removeFile(id); // Remove the file from the UI
-                }
-            });
+            loadExistingFiles(); // Load existing files and set up real-time updates
         });
     </script>
 </body>
