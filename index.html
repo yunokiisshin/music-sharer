@@ -45,15 +45,14 @@
     </style>
 </head>
 
-
 <body>
     <h1>Share Your Music</h1>
 
     <form id="sign">
-    <input id="alias" placeholder="username">
-    <input id="pass" type="password" placeholder="passphrase">
-    <input id="in" type="submit" value="sign in">
-    <input id="up" type="button" value="sign up">
+        <input id="alias" placeholder="username">
+        <input id="pass" type="password" placeholder="passphrase">
+        <input id="in" type="submit" value="sign in">
+        <input id="up" type="button" value="sign up">
     </form>
 
     <ul id="file-list"></ul>
@@ -66,13 +65,14 @@
         </form>
     </div>
 
+    <button id="logout" style="display: none;">Logout</button>
+
     <!-- Tools to include -->
     <script src="https://cdn.jsdelivr.net/npm/gun/examples/jquery.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+
     <script>
-        // I use the publically available site for hosting gundb; this can be found in the official website
-        // Optionally, I could establish a new server using an application, such as heroku, render
         var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
         var user = gun.user();
     
@@ -86,6 +86,15 @@
         $('#sign').on('submit', function(e){
             e.preventDefault();
             user.auth($('#alias').val(), $('#pass').val());
+        });
+    
+        $('#logout').on('click', function(e){
+            user.leave();
+            $('#sign').show();
+            $('#logout').hide();
+            $('#said').hide();
+            $('#add-file-section').hide();
+            $('#file-list').empty();
         });
     
         $('#said').on('submit', function(e){
@@ -120,6 +129,10 @@
         });
     
         function displayFile(file, id) {
+            if (!file || !file.data) {
+                console.error('Invalid file:', file);
+                return;
+            }
             var li = $('<li>').attr('id', id);
             var audio = $('<audio controls>').attr('src', file.data);
             li.append(file.name);
@@ -129,13 +142,16 @@
     
         gun.on('auth', function(){
             $('#sign').hide();
+            $('#logout').show();
             $('#said').show();
             $('#add-file-section').show();
-            user.get('said').map().once(UI);
+            user.get('said').map().on(UI); // if you use .once(UI), the automatic update won't work
             user.get('files').map().once(function(file, id) {
+                console.log('File:', file); // Log the file object for debugging
                 displayFile(file, id);
             });
         });
     </script>
+    
 </body>
 </html>
