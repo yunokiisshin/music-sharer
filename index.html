@@ -32,7 +32,7 @@
         audio {
             margin-left: 10px;
         }
-        #add-file-section {
+        #add-file-section, #search-section, #pub-key-section {
             display: none;
         }
     </style>
@@ -47,6 +47,12 @@
         <input id="up" type="button" value="sign up">
     </form>
 
+    <div id="search-section">
+        <h2>Search by Public Key</h2>
+        <input id="search" placeholder="Enter public key">
+    </div>
+
+    <h2>Your Files</h2>
     <ul id="file-list"></ul>
 
     <div id="add-file-section">
@@ -57,12 +63,22 @@
         </form>
     </div>
 
+    <h2>Files Found by Public Key</h2>
+    <ul id="search-file-list"></ul>
+
+    <div id="pub-key-section">
+        <h2>Your Public Key</h2>
+        <p id="pub-key"></p>
+    </div>
+
     <button id="logout" style="display: none;">Logout</button>
 
     <!-- Dependencies for basic utilities -->
     <script src="https://cdn.jsdelivr.net/npm/gun/examples/jquery.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+
+    <!-- Dependencies from SEA-sample.html code -->
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/yson.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/dom.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/upload.js"></script>
@@ -88,7 +104,11 @@
             $('#sign').show();
             $('#logout').hide();
             $('#add-file-section').hide();
+            $('#search-section').hide();
+            $('#pub-key-section').hide();
             $('#file-list').empty();
+            $('#search-file-list').empty();
+            $('#pub-key').text('');
         });
 
         $('#add-file').on('submit', function(e) {
@@ -114,7 +134,7 @@
             return id.replace(/[^\w-]/g, '');
         }
 
-        function displayFile(file, id) {
+        function displayFile(file, id, isOwner = true) {
             if (!file || !file.data) {
                 console.error('Invalid file:', file);
                 return;
@@ -124,13 +144,17 @@
             if ($li.length === 0) {
                 $li = $('<li>').attr('id', sanitizedId);
                 var audio = $('<audio controls>').attr('src', file.data);
-                var deleteButton = $('<button>').text('Delete').on('click', function() {
-                    user.get('files').get(id).put(null); // Remove the file from GUN
-                });
                 $li.append(file.name);
                 $li.append(audio);
-                $li.append(deleteButton);
-                $('#file-list').append($li);
+                if (isOwner) {
+                    var deleteButton = $('<button>').text('Delete').on('click', function() {
+                        user.get('files').get(id).put(null); // Remove the file from GUN
+                    });
+                    $li.append(deleteButton);
+                    $('#file-list').append($li);
+                } else {
+                    $('#search-file-list').append($li);
+                }
             } else {
                 $li.find('audio').attr('src', file.data);
             }
@@ -155,8 +179,29 @@
             $('#sign').hide();
             $('#logout').show();
             $('#add-file-section').show();
+            $('#search-section').show();
+            $('#pub-key-section').show();
             $('#file-list').empty(); // Clear the existing list to avoid duplicates
+            $('#search-file-list').empty(); // Clear the search list
             loadExistingFiles(); // Load existing files and set up real-time updates
+
+            // Display user's public key
+            var pub = user._.sea.pub;
+            $('#pub-key').text(pub);
+        });
+
+        // Function to search for a user by public key and display their files
+        $('#search').on('input', function(e){
+            var pubKey = $(this).val();
+            var targetUser = gun.user(pubKey);
+            $('#search-file-list').empty(); // Clear the list before displaying new files
+            targetUser.get('files').map().on(function(file, id) {
+                if (file) { // Filter out null values
+                    displayFile(file, id, false);
+                } else {
+                    removeFile(id); // Remove the file from the UI
+                }
+            });
         });
     </script>
 </body>
