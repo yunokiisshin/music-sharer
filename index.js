@@ -1,4 +1,4 @@
-var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+var gun = Gun();
 var user = gun.user();
 
 // Recall the user from session storage if available
