@@ -4,60 +4,205 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Sharing dApp</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="password"], input[type="file"], input[type="submit"], input[type="button"] {
+            display: block;
+            margin: 10px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        audio {
+            margin-left: 10px;
+        }
+        #add-file-section, #search-section, #pub-key-section {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <div id="header">
-        <h1>Share Your Music!</h1>
-    </div>
+    <h1>Share Your Music</h1>
 
-    <div class="form-container">
-        <form id="sign" class="form">
-            <input id="alias" placeholder="username" class="input">
-            <input id="pass" type="password" placeholder="passphrase" class="input">
-            <input id="in" type="submit" value="sign in" class="button">
-            <input id="up" type="button" value="sign up" class="button">
-        </form>
-    </div>
-
-    <div id="my-file-section">
-        <div id="add-file-section">
-            <h2>Add Audio File</h2>
-            <form id="add-file" class="form">
-                <label for="file" class="custom-file-upload">
-                    Choose File
-                </label>
-                <input type="file" id="file" accept="audio/*" class="input-file">
-                <input type="submit" value="Add File" class="button">
-            </form>
-        </div>
-        <h2>Your Files</h2>
-        <ul id="file-list"></ul>
-    </div>
+    <form id="sign">
+        <input id="alias" placeholder="username">
+        <input id="pass" type="password" placeholder="passphrase">
+        <input id="in" type="submit" value="sign in">
+        <input id="up" type="button" value="sign up">
+    </form>
 
     <div id="search-section">
         <h2>Search by Public Key</h2>
-        <input id="search" placeholder="Enter public key" class="input">
-        <h2>Files Found by Public Key</h2>
-        <ul id="search-file-list"></ul>
+        <input id="search" placeholder="Enter public key">
     </div>
+
+    <h2>Your Files</h2>
+    <ul id="file-list"></ul>
+
+    <div id="add-file-section">
+        <h2>Add Audio File</h2>
+        <form id="add-file">
+            <input type="file" id="file" accept="audio/*">
+            <input type="submit" value="Add File">
+        </form>
+    </div>
+
+    <h2>Files Found by Public Key</h2>
+    <ul id="search-file-list"></ul>
 
     <div id="pub-key-section">
         <h2>Your Public Key</h2>
         <p id="pub-key"></p>
     </div>
-    <div id="logout-section">
-        <button id="logout" style="display: none;" class="button">Logout</button>
-    </div>
 
-    <!-- utilities -->
+    <button id="logout" style="display: none;">Logout</button>
+
+    <!-- Dependencies for basic utilities -->
     <script src="https://cdn.jsdelivr.net/npm/gun/examples/jquery.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+
+    <!-- Dependencies from SEA-sample.html code -->
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/yson.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/dom.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/upload.js"></script>
 
-    <script src="index.js"></script>
+    <script>
+        var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+        var user = gun.user();
+
+        // Recall the user from session storage if available
+        user.recall({sessionStorage: true});
+
+        $('#up').on('click', function(e){
+            user.create($('#alias').val(), $('#pass').val());
+        });
+
+        $('#sign').on('submit', function(e){
+            e.preventDefault();
+            user.auth($('#alias').val(), $('#pass').val());
+        });
+
+        $('#logout').on('click', function(e){
+            user.leave();
+            $('#sign').show();
+            $('#logout').hide();
+            $('#add-file-section').hide();
+            $('#search-section').hide();
+            $('#pub-key-section').hide();
+            $('#file-list').empty();
+            $('#search-file-list').empty();
+            $('#pub-key').text('');
+        });
+
+        $('#add-file').on('submit', function(e) {
+            e.preventDefault();
+            var file = $('#file')[0].files[0];
+            if (!file) return;
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var fileData = event.target.result;
+                var fileName = file.name;
+
+                user.get('files').set({
+                    name: fileName,
+                    data: fileData,
+                    type: file.type
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function sanitizeId(id) {
+            return id.replace(/[^\w-]/g, '');
+        }
+
+        function displayFile(file, id, isOwner = true) {
+            if (!file || !file.data) {
+                console.error('Invalid file:', file);
+                return;
+            }
+            var sanitizedId = sanitizeId(id);
+            var $li = $('#' + sanitizedId);
+            if ($li.length === 0) {
+                $li = $('<li>').attr('id', sanitizedId);
+                var audio = $('<audio controls>').attr('src', file.data);
+                $li.append(file.name);
+                $li.append(audio);
+                if (isOwner) {
+                    var deleteButton = $('<button>').text('Delete').on('click', function() {
+                        user.get('files').get(id).put(null); // Remove the file from GUN
+                    });
+                    $li.append(deleteButton);
+                    $('#file-list').append($li);
+                } else {
+                    $('#search-file-list').append($li);
+                }
+            } else {
+                $li.find('audio').attr('src', file.data);
+            }
+        }
+
+        function removeFile(id) {
+            var sanitizedId = sanitizeId(id);
+            $('#' + sanitizedId).remove();
+        }
+
+        function loadExistingFiles() {
+            user.get('files').map().on(function(file, id) {
+                if (file) { // Filter out null values
+                    displayFile(file, id);
+                } else {
+                    removeFile(id); // Remove the file from the UI
+                }
+            });
+        }
+
+        gun.on('auth', function(){
+            $('#sign').hide();
+            $('#logout').show();
+            $('#add-file-section').show();
+            $('#search-section').show();
+            $('#pub-key-section').show();
+            $('#file-list').empty(); // Clear the existing list to avoid duplicates
+            $('#search-file-list').empty(); // Clear the search list
+            loadExistingFiles(); // Load existing files and set up real-time updates
+
+            // Display user's public key
+            var pub = user._.sea.pub;
+            $('#pub-key').text(pub);
+        });
+
+        // Function to search for a user by public key and display their files
+        $('#search').on('input', function(e){
+            var pubKey = $(this).val();
+            var targetUser = gun.user(pubKey);
+            $('#search-file-list').empty(); // Clear the list before displaying new files
+            targetUser.get('files').map().on(function(file, id) {
+                if (file) { // Filter out null values
+                    displayFile(file, id, false);
+                } else {
+                    removeFile(id); // Remove the file from the UI
+                }
+            });
+        });
+    </script>
 </body>
 </html>
