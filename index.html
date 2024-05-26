@@ -6,33 +6,68 @@
     <title>Music Sharing dApp</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
         }
-        h1 {
+        h1, h2 {
             text-align: center;
+            color: #444;
         }
-        form {
-            margin-bottom: 20px;
+        form, .section {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 500px;
         }
-        input[type="text"], input[type="password"], input[type="file"], input[type="submit"], input[type="button"] {
+        #alias {
             display: block;
+            width: 100%;
+            padding-top: 10px;
+            padding-bottom: 10px;
             margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input[type="text"], input[type="password"], input[type="file"], input[type="submit"], input[type="button"], button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        input[type="submit"], input[type="button"], button {
+            background-color: #333;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover, input[type="button"]:hover, button:hover {
+            background-color: #555;
         }
         ul {
             list-style-type: none;
             padding: 0;
         }
         li {
-            margin: 10px 0;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
         }
         audio {
-            margin-left: 10px;
+            flex-grow: 1;
         }
-        #add-file-section, #search-section, #pub-key-section {
+        #add-file-section, #search-section, #pub-key-section, #your-files-section, #found-files-section {
             display: none;
         }
     </style>
@@ -41,21 +76,18 @@
     <h1>Share Your Music</h1>
 
     <form id="sign">
-        <input id="alias" placeholder="username">
-        <input id="pass" type="password" placeholder="passphrase">
-        <input id="in" type="submit" value="sign in">
-        <input id="up" type="button" value="sign up">
+        <input id="alias" placeholder="Username">
+        <input id="pass" type="password" placeholder="Passphrase">
+        <input id="in" type="submit" value="Sign In">
+        <input id="up" type="button" value="Sign Up">
     </form>
 
-    <div id="search-section">
-        <h2>Search by Public Key</h2>
-        <input id="search" placeholder="Enter public key">
+    <div id="your-files-section" class="section">
+        <h2>Your Files</h2>
+        <ul id="file-list"></ul>
     </div>
 
-    <h2>Your Files</h2>
-    <ul id="file-list"></ul>
-
-    <div id="add-file-section">
+    <div id="add-file-section" class="section">
         <h2>Add Audio File</h2>
         <form id="add-file">
             <input type="file" id="file" accept="audio/*">
@@ -63,10 +95,17 @@
         </form>
     </div>
 
-    <h2>Files Found by Public Key</h2>
-    <ul id="search-file-list"></ul>
+    <div id="search-section" class="section">
+        <h2>Search by Public Key</h2>
+        <input id="search" placeholder="Enter public key">
+    </div>
 
-    <div id="pub-key-section">
+    <div id="found-files-section" class="section">
+        <h2>Files Found by Public Key</h2>
+        <ul id="search-file-list"></ul>
+    </div>
+
+    <div id="pub-key-section" class="section">
         <h2>Your Public Key</h2>
         <p id="pub-key"></p>
     </div>
@@ -105,6 +144,8 @@
             $('#logout').hide();
             $('#add-file-section').hide();
             $('#search-section').hide();
+            $('#your-files-section').hide();
+            $('#found-files-section').hide();
             $('#pub-key-section').hide();
             $('#file-list').empty();
             $('#search-file-list').empty();
@@ -180,6 +221,8 @@
             $('#logout').show();
             $('#add-file-section').show();
             $('#search-section').show();
+            $('#your-files-section').show();
+            $('#found-files-section').show();
             $('#pub-key-section').show();
             $('#file-list').empty(); // Clear the existing list to avoid duplicates
             $('#search-file-list').empty(); // Clear the search list
